@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="KeepUp.API/KeepUp.API.csproj" />
+  <Project Path="KeepUp.Application/KeepUp.Application.csproj" />
+  <Project Path="KeepUp.Domain/KeepUp.Domain.csproj" />
+  <Project Path="KeepUp.Infrastructure/KeepUp.Infrastructure.csproj" />
+</Solution>
