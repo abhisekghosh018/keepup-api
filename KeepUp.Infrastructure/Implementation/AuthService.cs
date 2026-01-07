@@ -47,7 +47,7 @@ namespace KeepUp.Infrastructure.Implementation
 
         public async Task<Guid> RegisterAsync(string email, string password, string displayName, DateOnly? dob)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            //await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
@@ -70,13 +70,13 @@ namespace KeepUp.Infrastructure.Implementation
 
                 await _dbContext.SaveChangesAsync();
 
-                await transaction.CommitAsync();
+                //await transaction.CommitAsync();
 
                 return user.Id;
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                //await transaction.RollbackAsync();
                 throw;
             }
 
