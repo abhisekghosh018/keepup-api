@@ -1,5 +1,6 @@
 ﻿using KeepUp.Application.DTOs;
 using KeepUp.Application.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KeepUp.API.Controllers
@@ -26,6 +27,14 @@ namespace KeepUp.API.Controllers
         {
             var token = await _authService.LoginAsync(request.Email, request.Password);
             return Ok(new { Token = token });
+        }
+
+        [HttpGet("users")]
+        [Authorize]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _authService.GetAllUsers();
+            return Ok(users);
         }
     }
 }

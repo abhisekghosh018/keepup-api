@@ -1,8 +1,10 @@
-﻿using KeepUp.Application.Interface;
+﻿using KeepUp.Application.DTOs;
+using KeepUp.Application.Interface;
 using KeepUp.Domain.Entities;
 using KeepUp.Infrastructure.DbManager;
 using KeepUp.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -26,6 +28,27 @@ namespace KeepUp.Infrastructure.Implementation
             _configuration = configuration;
         }
 
+        public async Task<List<GetUsers>> GetAllUsers()
+        {
+            var users = await (from user in _userManager.Users
+                               join profile in _dbContext.UserProfiles
+                               on user.Id equals profile.ApplicationUserId
+
+                               select new GetUsers
+                               {
+                                   Id = user.Id.ToString(),
+                                   Email = user.Email!,
+                                   DisplayName = profile.UserDisplayName
+                               }).ToListAsync();
+
+            if (users.Count == 0)
+            {
+                throw new Exception("No users found");
+            }
+
+            return users;
+        }
+
         public async Task<string> LoginAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -42,12 +65,12 @@ namespace KeepUp.Infrastructure.Implementation
                 throw new Exception("Invalid email or password.");
             }
 
-            return GenerateJWtToken(user);
+            return GenerateJWTToken(user);
         }
 
         public async Task<Guid> RegisterAsync(string email, string password, string displayName, DateOnly? dob)
         {
-            //await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
@@ -70,20 +93,20 @@ namespace KeepUp.Infrastructure.Implementation
 
                 await _dbContext.SaveChangesAsync();
 
-                //await transaction.CommitAsync();
+                await transaction.CommitAsync();
 
                 return user.Id;
             }
             catch (Exception ex)
             {
-                //await transaction.RollbackAsync();
+                await transaction.RollbackAsync();
                 throw;
             }
 
         }
 
 
-        private string GenerateJWtToken(ApplicationUser user)
+        private string GenerateJWTToken(ApplicationUser user)
         {
             // Implementation for JWT token generation goes here.
 
