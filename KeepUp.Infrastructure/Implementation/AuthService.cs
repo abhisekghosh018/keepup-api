@@ -1,4 +1,5 @@
-﻿using KeepUp.Application.DTOs;
+﻿using KeepUp.Application.Common;
+using KeepUp.Application.DTOs;
 using KeepUp.Application.Interface;
 using KeepUp.Domain.Entities;
 using KeepUp.Infrastructure.DbManager;
@@ -28,13 +29,13 @@ namespace KeepUp.Infrastructure.Implementation
             _configuration = configuration;
         }
 
-        public async Task<List<GetUsers>> GetAllUsers()
+        public async Task<List<GetUsersRequest>> GetAllUsers()
         {
             var users = await (from user in _userManager.Users
                                join profile in _dbContext.UserProfiles
                                on user.Id equals profile.ApplicationUserId
 
-                               select new GetUsers
+                               select new GetUsersRequest
                                {
                                    Id = user.Id.ToString(),
                                    Email = user.Email!,
@@ -43,29 +44,31 @@ namespace KeepUp.Infrastructure.Implementation
 
             if (users.Count == 0)
             {
-                throw new Exception("No users found");
+                users.ToList();
             }
 
             return users;
         }
 
-        public async Task<string> LoginAsync(string email, string password)
+        public async Task<Result<string>> LoginAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user is null)
             {
-                throw new Exception("Invalid email or password.");
+                return Result<string>.Error("Invalid email or password.");
             }
 
             var isPasswordbalid = await _userManager.CheckPasswordAsync(user, password);
 
             if (!isPasswordbalid)
             {
-                throw new Exception("Invalid email or password.");
+                return Result<string>.Error("Invalid email or password.");
             }
 
-            return GenerateJWTToken(user);
+
+            var tokn = GenerateJWTToken(user);
+            return Result<string>.Success(tokn);
         }
 
         public async Task<Guid> RegisterAsync(string email, string password, string displayName, DateOnly? dob)

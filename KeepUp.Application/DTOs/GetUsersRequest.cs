@@ -1,6 +1,6 @@
 ﻿namespace KeepUp.Application.DTOs
 {
-    public class GetUsers
+    public record GetUsersRequest
     {
         public string Id { get; set; }
         public string Email { get; set; }

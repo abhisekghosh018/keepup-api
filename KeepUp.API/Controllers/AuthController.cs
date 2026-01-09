@@ -25,8 +25,14 @@ namespace KeepUp.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var token = await _authService.LoginAsync(request.Email, request.Password);
-            return Ok(new { Token = token });
+            var result = await _authService.LoginAsync(request.Email, request.Password);
+
+            if (!result.IsSuccess)
+            {
+                return Unauthorized(result?.ErrorMessage);
+            }
+
+            return Ok(new { Token = result.Data });
         }
 
         [HttpGet("users")]
