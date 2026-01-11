@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -29,7 +30,7 @@ namespace KeepUp.Infrastructure.Implementation
             _configuration = configuration;
         }
 
-        public async Task<List<GetUsersRequest>> GetAllUsers()
+        public async Task<Result<List<GetUsersRequest>>> GetAllUsers()
         {
             var users = await (from user in _userManager.Users
                                join profile in _dbContext.UserProfiles
@@ -44,10 +45,10 @@ namespace KeepUp.Infrastructure.Implementation
 
             if (users.Count == 0)
             {
-                users.ToList();
+                return Result<List<GetUsersRequest>>.Error("No users found.");
             }
 
-            return users;
+            return Result<List<GetUsersRequest>>.Success(users);
         }
 
         public async Task<Result<string>> LoginAsync(string email, string password)
@@ -71,41 +72,40 @@ namespace KeepUp.Infrastructure.Implementation
             return Result<string>.Success(tokn);
         }
 
-        public async Task<Guid> RegisterAsync(string email, string password, string displayName, DateOnly? dob)
+        public async Task<Result<string>> RegisterAsync(
+    string email, string password, string displayName, DateOnly? dob)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email
+            };
+
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (!result.Succeeded)
+            {
+                return Result<string>.Error(
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
 
             try
             {
-                var user = new ApplicationUser
-                {
-                    UserName = email,
-                    Email = email,
-                };
-
-
-                var result = await _userManager.CreateAsync(user, password);
-
-                if (!result.Succeeded)
-                {
-                    throw new Exception(email + " registration failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
-                }
-
                 var profile = new UserProfile(displayName, user.Id, dob);
                 _dbContext.UserProfiles.Add(profile);
-
                 await _dbContext.SaveChangesAsync();
 
-                await transaction.CommitAsync();
-
-                return user.Id;
+                return Result<string>.Success(user.Id.ToString());
             }
-            catch (Exception ex)
+            catch (DbUpdateException ex) when
+                (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
             {
-                await transaction.RollbackAsync();
-                throw;
+                return Result<string>.Error("Email already exists.");
             }
-
+            catch
+            {
+                return Result<string>.Error("Failed to complete registration.");
+            }
         }
 
 
@@ -135,6 +135,7 @@ namespace KeepUp.Infrastructure.Implementation
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
     }
 
 }

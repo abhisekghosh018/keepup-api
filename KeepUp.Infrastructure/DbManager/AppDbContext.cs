@@ -21,6 +21,9 @@ namespace KeepUp.Infrastructure.DbManager
                 .HasColumnType("uuid")
                 .HasDefaultValueSql("gen_random_uuid()")
                 .ValueGeneratedOnAdd();
+
+                e.HasIndex(u => u.Email).IsUnique();
+                e.Property(u => u.Email).IsRequired();
             });
 
         }

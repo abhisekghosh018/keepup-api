@@ -18,8 +18,14 @@ namespace KeepUp.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            var userId = await _authService.RegisterAsync(request.Email, request.Password, request.DisplayName, request.DOB);
-            return Ok(new { UserId = userId });
+            var result = await _authService.RegisterAsync(request.Email, request.Password, request.DisplayName, request.DOB);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+
+            return Ok(new { UserId = result.Data });
         }
 
         [HttpPost("login")]
@@ -40,7 +46,13 @@ namespace KeepUp.API.Controllers
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _authService.GetAllUsers();
-            return Ok(users);
+
+            if (!users.IsSuccess)
+            {
+                return BadRequest(users.ErrorMessage);
+            }
+
+            return Ok(new { User = users.Data });
         }
     }
 }
