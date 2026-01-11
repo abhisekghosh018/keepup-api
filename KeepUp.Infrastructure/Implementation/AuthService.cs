@@ -51,6 +51,31 @@ namespace KeepUp.Infrastructure.Implementation
             return Result<List<GetUsersRequest>>.Success(users);
         }
 
+        public async Task<Result<GetUsersRequest>> GetUserByEmailAsync(string email)
+        {
+            var isEmailExists = await _userManager.FindByEmailAsync(email);
+
+            if (isEmailExists is null)
+            {
+                return Result<GetUsersRequest>.Error("User not found.");
+            }
+
+            var user = await (from u in _userManager.Users
+                              join profile in _dbContext.UserProfiles
+                              on u.Id equals profile.ApplicationUserId
+                              where u.Email == email
+
+                              select new GetUsersRequest
+                              {
+                                  Id = u.Id.ToString(),
+                                  DisplayName = profile.UserDisplayName,
+                                  Email = u.Email!,
+                                  DOB = profile.DOB.HasValue ? profile.DOB.Value.ToString("yyyy-MM-dd") : "Unknown"
+                              }).ToListAsync();
+
+            return Result<GetUsersRequest>.Success(user.First());
+        }
+
         public async Task<Result<string>> LoginAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -73,7 +98,7 @@ namespace KeepUp.Infrastructure.Implementation
         }
 
         public async Task<Result<string>> RegisterAsync(
-    string email, string password, string displayName, DateOnly? dob)
+        string email, string password, string displayName, DateOnly? dob)
         {
             var user = new ApplicationUser
             {
@@ -107,7 +132,6 @@ namespace KeepUp.Infrastructure.Implementation
                 return Result<string>.Error("Failed to complete registration.");
             }
         }
-
 
         private string GenerateJWTToken(ApplicationUser user)
         {

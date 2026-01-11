@@ -54,5 +54,17 @@ namespace KeepUp.API.Controllers
 
             return Ok(new { User = users.Data });
         }
+
+        [HttpGet("user-profile")]
+        [Authorize]
+        public async Task<IActionResult> GetUserByEmail(string email)
+        {
+            var user = await _authService.GetUserByEmailAsync(email);
+            if (!user.IsSuccess)
+            {
+                return BadRequest(user.ErrorMessage);
+            }
+            return Ok(new { User = user.Data });
+        }
     }
 }
